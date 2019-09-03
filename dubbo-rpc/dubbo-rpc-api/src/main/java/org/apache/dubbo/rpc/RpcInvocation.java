@@ -27,6 +27,7 @@ import java.util.Map;
 
 /**
  * RPC Invocation.
+ * NOTE: 封装服务调用的 方法元数据
  *
  * @serial Don't change the class name and properties.
  */

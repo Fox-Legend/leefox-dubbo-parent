@@ -68,6 +68,7 @@ public class CuratorZookeeperClient extends AbstractZookeeperClient<CuratorWatch
                     }
                 }
             });
+            // 启动客户端
             client.start();
         } catch (Exception e) {
             throw new IllegalStateException(e.getMessage(), e);

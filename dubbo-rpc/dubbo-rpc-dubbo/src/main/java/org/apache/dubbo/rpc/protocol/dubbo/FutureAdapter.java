@@ -28,6 +28,7 @@ import java.util.concurrent.TimeoutException;
 
 /**
  * FutureAdapter
+ * NOTE: 将Dubbo内部定义的Future和Jdk 自身的CompletableFuture进行适配
  */
 public class FutureAdapter<V> extends CompletableFuture<V> {
 

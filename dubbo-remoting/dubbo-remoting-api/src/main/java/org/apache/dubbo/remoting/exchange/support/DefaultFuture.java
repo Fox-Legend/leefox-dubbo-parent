@@ -72,9 +72,12 @@ public class DefaultFuture implements ResponseFuture {
     private DefaultFuture(Channel channel, Request request, int timeout) {
         this.channel = channel;
         this.request = request;
+        //NOTE: 获取请求 id，这个 id 很重要
         this.id = request.getId();
+        //NOTE: 默认请求超时1秒
         this.timeout = timeout > 0 ? timeout : channel.getUrl().getPositiveParameter(Constants.TIMEOUT_KEY, Constants.DEFAULT_TIMEOUT);
         // put into waiting map.
+        //NOTE: 记录每个请求id以及其对应的Future
         FUTURES.put(id, this);
         CHANNELS.put(id, channel);
     }
@@ -144,6 +147,7 @@ public class DefaultFuture implements ResponseFuture {
 
     public static void received(Channel channel, Response response) {
         try {
+            //NOTE: 根据result id 获取对应的Future
             DefaultFuture future = FUTURES.remove(response.getId());
             if (future != null) {
                 future.doReceived(response);
@@ -170,6 +174,7 @@ public class DefaultFuture implements ResponseFuture {
             timeout = Constants.DEFAULT_TIMEOUT;
         }
         if (!isDone()) {
+            //NOTE: 加锁，循环等待response有值
             long start = System.currentTimeMillis();
             lock.lock();
             try {
@@ -184,10 +189,12 @@ public class DefaultFuture implements ResponseFuture {
             } finally {
                 lock.unlock();
             }
+            //NOTE: 等待超时还没有结果，则抛出超时异常
             if (!isDone()) {
                 throw new TimeoutException(sent > 0, channel, getTimeoutMessage(false));
             }
         }
+        // 返回调用结果
         return returnFromResponse();
     }
 
@@ -284,6 +291,11 @@ public class DefaultFuture implements ResponseFuture {
         }
     }
 
+    /**
+     * 解析返回结果并返回
+     * @return
+     * @throws RemotingException
+     */
     private Object returnFromResponse() throws RemotingException {
         Response res = response;
         if (res == null) {
@@ -331,6 +343,7 @@ public class DefaultFuture implements ResponseFuture {
         try {
             response = res;
             if (done != null) {
+                //NOTE: 唤醒用户线程，可以获取结果了
                 done.signal();
             }
         } finally {

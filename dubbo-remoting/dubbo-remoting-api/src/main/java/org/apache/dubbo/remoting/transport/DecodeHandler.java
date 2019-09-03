@@ -34,6 +34,12 @@ public class DecodeHandler extends AbstractChannelHandlerDelegate {
         super(handler);
     }
 
+    /**
+     * 存在的意义就是保证请求或响应对象可在线程池中被解码
+     * @param channel
+     * @param message
+     * @throws RemotingException
+     */
     @Override
     public void received(Channel channel, Object message) throws RemotingException {
         if (message instanceof Decodeable) {

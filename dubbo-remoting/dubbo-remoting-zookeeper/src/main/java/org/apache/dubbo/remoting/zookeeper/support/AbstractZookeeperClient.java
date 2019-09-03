@@ -57,10 +57,13 @@ public abstract class AbstractZookeeperClient<TargetChildListener> implements Zo
                 return;
             }
         }
+
+        //NOTE: 层层解析，创建zk节点
         int i = path.lastIndexOf('/');
         if (i > 0) {
             create(path.substring(0, i), false);
         }
+        //NOTE: 是否创建临时节点
         if (ephemeral) {
             createEphemeral(path);
         } else {

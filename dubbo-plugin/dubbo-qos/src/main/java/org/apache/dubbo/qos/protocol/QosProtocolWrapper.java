@@ -78,6 +78,10 @@ public class QosProtocolWrapper implements Protocol {
         stopServer();
     }
 
+    /**
+     * NOTE: 启动服务注册
+     * @param url
+     */
     private void startQosServer(URL url) {
         try {
             boolean qosEnable = url.getParameter(QOS_ENABLE,true);
@@ -88,6 +92,7 @@ public class QosProtocolWrapper implements Protocol {
                 return;
             }
 
+            //NOTE: CAS 记录是否已经开启
             if (!hasStarted.compareAndSet(false, true)) {
                 return;
             }

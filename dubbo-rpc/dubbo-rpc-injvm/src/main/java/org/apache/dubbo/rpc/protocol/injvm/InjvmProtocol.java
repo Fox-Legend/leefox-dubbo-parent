@@ -94,6 +94,15 @@ public class InjvmProtocol extends AbstractProtocol implements Protocol {
         return new InjvmExporter<T>(invoker, invoker.getUrl().getServiceKey(), exporterMap);
     }
 
+
+    /**
+     * 引用服务
+     * @param serviceType 引用服务接口
+     * @param url  URL address for the remote service 引用服务的URl信息
+     * @param <T>
+     * @return
+     * @throws RpcException
+     */
     @Override
     public <T> Invoker<T> refer(Class<T> serviceType, URL url) throws RpcException {
         return new InjvmInvoker<T>(serviceType, url, url.getServiceKey(), exporterMap);

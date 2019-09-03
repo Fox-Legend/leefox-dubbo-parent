@@ -384,8 +384,10 @@ public abstract class AbstractRegistry implements Registry {
             logger.info("Notify urls for subscribe url " + url + ", urls: " + urls);
         }
         Map<String, List<URL>> result = new HashMap<String, List<URL>>();
+        //NOTE: 将不同信息类型进行分类
         for (URL u : urls) {
             if (UrlUtils.isMatch(url, u)) {
+                //NOTE: 从URL中获取分类信息
                 String category = u.getParameter(Constants.CATEGORY_KEY, Constants.DEFAULT_CATEGORY);
                 List<URL> categoryList = result.get(category);
                 if (categoryList == null) {
@@ -403,11 +405,13 @@ public abstract class AbstractRegistry implements Registry {
             notified.putIfAbsent(url, new ConcurrentHashMap<String, List<URL>>());
             categoryNotified = notified.get(url);
         }
+
         for (Map.Entry<String, List<URL>> entry : result.entrySet()) {
             String category = entry.getKey();
             List<URL> categoryList = entry.getValue();
             categoryNotified.put(category, categoryList);
             saveProperties(url);
+            //NOTE: 发起信息变更通知
             listener.notify(categoryList);
         }
     }

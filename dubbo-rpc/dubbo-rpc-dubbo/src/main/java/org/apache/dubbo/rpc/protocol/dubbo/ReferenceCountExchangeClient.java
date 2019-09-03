@@ -36,6 +36,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 final class ReferenceCountExchangeClient implements ExchangeClient {
 
     private final URL url;
+    /**
+     * 每当该对象被引用一次 referenceCount 都会进行自增。每当 close 方法被调用时，referenceCount 进行自减
+     */
     private final AtomicInteger referenceCount = new AtomicInteger(0);
 
     //    private final ExchangeHandler handler;
@@ -45,6 +48,7 @@ final class ReferenceCountExchangeClient implements ExchangeClient {
 
     public ReferenceCountExchangeClient(ExchangeClient client, ConcurrentMap<String, LazyConnectExchangeClient> ghostClientMap) {
         this.client = client;
+        //NOTE: 记录引用次数
         referenceCount.incrementAndGet();
         this.url = client.getUrl();
         if (ghostClientMap == null) {

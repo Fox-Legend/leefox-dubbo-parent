@@ -196,6 +196,7 @@ public class HeaderExchangeHandler implements ChannelHandlerDelegate {
                 if (request.isEvent()) {
                     handlerEvent(channel, request);
                 } else {
+                    //NOTE: 双向通道时，需要将结果返回个客户端
                     if (request.isTwoWay()) {
                         handleRequest(exchangeChannel, request);
                     } else {
@@ -203,6 +204,7 @@ public class HeaderExchangeHandler implements ChannelHandlerDelegate {
                     }
                 }
             } else if (message instanceof Response) {
+                //NOTE: 处理返回结果
                 handleResponse(channel, (Response) message);
             } else if (message instanceof String) {
                 if (isClientSide(channel)) {

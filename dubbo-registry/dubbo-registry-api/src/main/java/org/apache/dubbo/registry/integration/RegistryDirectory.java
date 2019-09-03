@@ -183,15 +183,16 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
                 .collect(Collectors.toList());
 
         /**
-         * TODO Try to refactor the processing of these three type of urls using Collectors.groupBy()?
+         *  Try to refactor the processing of these three type of urls using Collectors.groupBy()?
          */
+        //NOTE: 处理configurator的变更
         this.configurators = Configurator.toConfigurators(classifyUrls(categoryUrls, UrlUtils::isConfigurator))
                 .orElse(configurators);
 
-        // TODO: 2019/3/14  将 url 转成 Router
+        //NOTE: 处理router的变更
         toRouters(classifyUrls(categoryUrls, UrlUtils::isRoute)).ifPresent(this::addRouters);
 
-        // providers
+        //NOTE: 处理providers的变更
         refreshOverrideAndInvoker(classifyUrls(categoryUrls, UrlUtils::isProvider));
     }
 

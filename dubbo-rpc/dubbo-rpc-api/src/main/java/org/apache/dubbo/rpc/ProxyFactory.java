@@ -49,7 +49,7 @@ public interface ProxyFactory {
 
     /**
      * create invoker.
-     * 在暴露服务时调用
+     * 暴露服务
      *
      * @param <T>
      * @param proxy

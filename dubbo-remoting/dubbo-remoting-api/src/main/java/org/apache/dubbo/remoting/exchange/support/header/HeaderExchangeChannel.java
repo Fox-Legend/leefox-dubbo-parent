@@ -113,6 +113,7 @@ final class HeaderExchangeChannel implements ExchangeChannel {
         req.setData(request);
         DefaultFuture future = DefaultFuture.newFuture(channel, req, timeout);
         try {
+            //NOTE: 调用 NettyClient 的 send 方法发送请求
             channel.send(req);
         } catch (RemotingException e) {
             future.cancel();

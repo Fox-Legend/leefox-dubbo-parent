@@ -18,6 +18,9 @@ package org.apache.dubbo.rpc.model;
 
 import java.lang.reflect.Method;
 
+/**
+ * 记录服务暴露接口中方法的元信息数据
+ */
 public class ProviderMethodModel {
     private transient final Method method;
     private final String methodName;

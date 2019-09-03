@@ -34,6 +34,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * DefaultMessageClient
+ * NOTE: 其主要作用：封装了一些关于心跳检测的逻辑
  */
 public class HeaderExchangeClient implements ExchangeClient {
 
@@ -53,6 +54,7 @@ public class HeaderExchangeClient implements ExchangeClient {
         this.channel = new HeaderExchangeChannel(client);
         String dubbo = client.getUrl().getParameter(Constants.DUBBO_VERSION_KEY);
 
+        //NOTE: 以下代码均与心跳检测逻辑有关
         this.heartbeat = client.getUrl().getParameter(Constants.HEARTBEAT_KEY, dubbo != null &&
                 dubbo.startsWith("1.0.") ? Constants.DEFAULT_HEARTBEAT : 0);
         this.heartbeatTimeout = client.getUrl().getParameter(Constants.HEARTBEAT_TIMEOUT_KEY, heartbeat * 3);

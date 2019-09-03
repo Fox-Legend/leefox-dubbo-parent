@@ -389,6 +389,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>${maven_surefire_version}</version>
                 <configuration>
+                    <skipTests>true</skipTests>
                     <useSystemClassLoader>true</useSystemClassLoader>
                     <forkMode>once</forkMode>
                     <argLine>${argline} ${jacocoArgLine}</argLine>

@@ -64,6 +64,7 @@ public class NettyServer extends AbstractServer implements Server {
     @Override
     protected void doOpen() throws Throwable {
         NettyHelper.setNettyLoggerFactory();
+        //NOTE: 创建 boss 和 worker 线程池
         ExecutorService boss = Executors.newCachedThreadPool(new NamedThreadFactory("NettyServerBoss", true));
         ExecutorService worker = Executors.newCachedThreadPool(new NamedThreadFactory("NettyServerWorker", true));
         ChannelFactory channelFactory = new NioServerSocketChannelFactory(boss, worker, getUrl().getPositiveParameter(Constants.IO_THREADS_KEY, Constants.DEFAULT_IO_THREADS));

@@ -80,16 +80,21 @@ public class DubboInvoker<T> extends AbstractInvoker<T> {
             currentClient = clients[index.getAndIncrement() % clients.length];
         }
         try {
+            //NOTE: 异步调用(要返回值和不要返回值)
             boolean isAsync = RpcUtils.isAsync(getUrl(), invocation);
             boolean isAsyncFuture = RpcUtils.isReturnTypeFuture(inv);
+
+            //NOTE: 单向调用（异步无返回值）
             boolean isOneway = RpcUtils.isOneway(getUrl(), invocation);
             int timeout = getUrl().getMethodParameter(methodName, Constants.TIMEOUT_KEY, Constants.DEFAULT_TIMEOUT);
             if (isOneway) {
                 boolean isSent = getUrl().getMethodParameter(methodName, Constants.SENT_KEY, false);
                 currentClient.send(inv, isSent);
                 RpcContext.getContext().setFuture(null);
+                //返回一个空对象
                 return new RpcResult();
             } else if (isAsync) {
+                //返回值回调Future
                 ResponseFuture future = currentClient.request(inv, timeout);
                 // For compatibility
                 FutureAdapter<Object> futureAdapter = new FutureAdapter<>(future);
@@ -97,6 +102,7 @@ public class DubboInvoker<T> extends AbstractInvoker<T> {
 
                 Result result;
                 if (isAsyncFuture) {
+                    // NOTE: 异步调用 Future获取返回值
                     // register resultCallback, sometimes we need the async result being processed by the filter chain.
                     result = new AsyncRpcResult(futureAdapter, futureAdapter.getResultFuture(), false);
                 } else {
@@ -104,6 +110,7 @@ public class DubboInvoker<T> extends AbstractInvoker<T> {
                 }
                 return result;
             } else {
+                //NOTE: 同步调用，得到一个 ResponseFuture 实例，并调用该实例的 get 方法进行等待
                 RpcContext.getContext().setFuture(null);
                 return (Result) currentClient.request(inv, timeout).get();
             }

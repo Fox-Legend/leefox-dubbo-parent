@@ -56,7 +56,7 @@ public class InvokerInvocationHandler implements InvocationHandler {
         }
 
         /**
-         * NOTE: 执行真正的服务调用
+         * NOTE: 执行真正的服务调用，异步或者同步（invoker 为MockClusterInvoker）
          */
         return invoker.invoke(createInvocation(method, args)).recreate();
     }

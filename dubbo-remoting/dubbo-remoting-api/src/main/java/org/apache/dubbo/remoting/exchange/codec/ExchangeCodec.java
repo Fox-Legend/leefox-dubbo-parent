@@ -50,6 +50,7 @@ import java.io.InputStream;
 public class ExchangeCodec extends TelnetCodec {
 
     // header length.
+    //NOTE: 消息头长度为16字节
     protected static final int HEADER_LENGTH = 16;
     // magic header.
     protected static final short MAGIC = (short) 0xdabb;
@@ -69,8 +70,10 @@ public class ExchangeCodec extends TelnetCodec {
     @Override
     public void encode(Channel channel, ChannelBuffer buffer, Object msg) throws IOException {
         if (msg instanceof Request) {
+            //NOTE: 对请求进行编码
             encodeRequest(channel, buffer, (Request) msg);
         } else if (msg instanceof Response) {
+            //NOTE: 对结果进行编码
             encodeResponse(channel, buffer, (Response) msg);
         } else {
             super.encode(channel, buffer, msg);

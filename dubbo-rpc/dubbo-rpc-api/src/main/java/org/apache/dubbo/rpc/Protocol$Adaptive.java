@@ -5,6 +5,8 @@ import org.apache.dubbo.common.extension.ExtensionLoader;
 
 @Adaptive
 public class Protocol$Adaptive implements org.apache.dubbo.rpc.Protocol {
+
+    //NOTE: destory()和getDefaultPort() 都没有@Adaptive注解，所以不会创建具体实现
     public void destroy() {
         throw new UnsupportedOperationException(
                 "method public abstract void org.apache.dubbo.rpc.Protocol.destroy() of interface org.apache.dubbo.rpc.Protocol is not adaptive method!");
@@ -32,6 +34,7 @@ public class Protocol$Adaptive implements org.apache.dubbo.rpc.Protocol {
                     "org.apache.dubbo.rpc.Invoker argument getUrl() == null");
         }
 
+        //NOTE: 根据URL的参数来确定具体要调用哪个Protocol的扩展实现类
         org.apache.dubbo.common.URL url = arg0.getUrl();
         String extName = ((url.getProtocol() == null) ? "dubbo" : url.getProtocol());
 
@@ -41,8 +44,9 @@ public class Protocol$Adaptive implements org.apache.dubbo.rpc.Protocol {
                             url.toString() + ") use keys([protocol])");
         }
 
+        //NOTE: 获得对应的Protocol的扩展实现类
         org.apache.dubbo.rpc.Protocol extension = (org.apache.dubbo.rpc.Protocol) ExtensionLoader.getExtensionLoader(org.apache.dubbo.rpc.Protocol.class).getExtension(extName);
-        //服务暴露
+        //NOTE：服务暴露
         return extension.export(arg0);
     }
 
@@ -59,6 +63,7 @@ public class Protocol$Adaptive implements org.apache.dubbo.rpc.Protocol {
             throw new IllegalArgumentException("url == null");
         }
 
+        //NOTE: 根据URL的参数来确定具体要调用哪个Protocol的扩展实现类
         org.apache.dubbo.common.URL url = arg1;
         String extName = ((url.getProtocol() == null) ? "dubbo" : url.getProtocol());
 

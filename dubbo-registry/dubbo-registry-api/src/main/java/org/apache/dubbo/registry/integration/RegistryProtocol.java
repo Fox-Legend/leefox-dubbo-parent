@@ -178,16 +178,17 @@ public class RegistryProtocol implements Protocol {
 
     @Override
     public <T> Exporter<T> export(final Invoker<T> originInvoker) throws RpcException {
-        // NOTE: 获取注册中心 URL，以 zookeeper 注册中心为例，得到的示例 URL
+        // NOTE: 获取注册中心 URL（registry开头）
         URL registryUrl = getRegistryUrl(originInvoker);
         // url to export locally
+        //NOTE: 服务暴露URL（dubbo、multicast等协议开头）
         URL providerUrl = getProviderUrl(originInvoker);
 
         // Subscribe the override data
         // FIXME When the provider subscribes, it will affect the scene : a certain JVM exposes the service and call
         //  the same service. Because the subscribed is cached key with the name of the service, it causes the
         //  subscription information to cover.
-        // TODO:  获取订阅 URL
+        // TODO:  获取订阅 URL(provider开头)
         final URL overrideSubscribeUrl = getSubscribedOverrideUrl(providerUrl);
 
         //NOTE: 使用 OverrideListener 对象，订阅配置规则
@@ -196,7 +197,7 @@ public class RegistryProtocol implements Protocol {
 
         providerUrl = overrideUrlWithConfig(providerUrl, overrideSubscribeListener);
         //export invoker
-        //NOTE: DubboProtocol  创建Exporter，暴露服务
+        //NOTE:  创建Exporter，暴露服务
         final ExporterChangeableWrapper<T> exporter = doLocalExport(originInvoker, providerUrl);
 
         // url to registry
@@ -211,12 +212,13 @@ public class RegistryProtocol implements Protocol {
         boolean register = registeredProviderUrl.getParameter("register", true);
         if (register) {
             // NOTE: 向注册中心注册服务
+            //NOTE: 这里的代码好奇怪？逻辑和getRegistry一样，就是通过registryUrl去获取Registry，干嘛不直接传进去？
             register(registryUrl, registeredProviderUrl);
             providerInvokerWrapper.setReg(true);
         }
 
         // Deprecated! Subscribe to override rules in 2.6.x or before.
-        // TODO: 2019/3/12  向注册中心进行 订阅 override 数据
+        // NOTE:  向注册中心进行 订阅 override 数据
         registry.subscribe(overrideSubscribeUrl, overrideSubscribeListener);
 
         exporter.setRegisterUrl(registeredProviderUrl);
@@ -251,8 +253,9 @@ public class RegistryProtocol implements Protocol {
                 exporter = (ExporterChangeableWrapper<T>) bounds.get(key);
                 if (exporter == null) {
 
+                    //创建 Invoker 为委托类对象
                     final Invoker<?> invokerDelegete = new InvokerDelegate<T>(originInvoker, providerUrl);
-                    //NOTE: DubboProtocol export创建Exporter
+                    //NOTE: DubboProtocol export创建Exporter，进行服务暴露
                     /**
                      * 使用【创建的 Exporter 对象】+【originInvoker】，创建 ExporterChangeableWrapper 对象。这样，originInvoker 就和 Exporter 对象，形成了绑定的关系
                      */
@@ -403,22 +406,25 @@ public class RegistryProtocol implements Protocol {
     }
 
     private <T> Invoker<T> doRefer(Cluster cluster, Registry registry, Class<T> type, URL url) {
+        //NOTE: 创建 RegistryDirectory 实例
         RegistryDirectory<T> directory = new RegistryDirectory<T>(type, url);
+        // 设置注册中心和协议
         directory.setRegistry(registry);
         directory.setProtocol(protocol);
         // all attributes of REFER_KEY
         Map<String, String> parameters = new HashMap<String, String>(directory.getUrl().getParameters());
-        // TODO: 2019/3/13 生成服务消费者链接
+        // NOTE: 生成服务消费者链接
         URL subscribeUrl = new URL(CONSUMER_PROTOCOL, parameters.remove(REGISTER_IP_KEY), 0, type.getName(), parameters);
+        //NOTE: 注册服务消费者，在 consumers 目录下新节点
         if (!ANY_VALUE.equals(url.getServiceInterface()) && url.getParameter(REGISTER_KEY, true)) {
             registry.register(getRegisteredConsumerUrl(subscribeUrl, url));
         }
-        // TODO: 2019/3/13 订阅 providers、configurators、routers 等节点数据
+        // TODO: 订阅 providers、configurators、routers 等节点数据
         directory.buildRouterChain(subscribeUrl);
         directory.subscribe(subscribeUrl.addParameter(CATEGORY_KEY,
                 PROVIDERS_CATEGORY + "," + CONFIGURATORS_CATEGORY + "," + ROUTERS_CATEGORY));
 
-        // TODO: 2019/3/13 一个注册中心可能有多个服务提供者，因此这里需要将多个服务提供者合并为一个
+        // TODO: 一个注册中心可能有多个服务提供者，因此这里需要将多个服务提供者合并为一个
         Invoker invoker = cluster.join(directory);
         ProviderConsumerRegTable.registerConsumer(invoker, url, subscribeUrl, directory);
         return invoker;

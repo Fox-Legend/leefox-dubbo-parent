@@ -135,6 +135,7 @@ public class ZookeeperRegistry extends FailbackRegistry {
     @Override
     public void doSubscribe(final URL url, final NotifyListener listener) {
         try {
+            //泛泛接口，全匹配
             if (Constants.ANY_VALUE.equals(url.getServiceInterface())) {
                 String root = toRootPath();
                 ConcurrentMap<NotifyListener, ChildListener> listeners = zkListeners.get(url);
@@ -170,6 +171,7 @@ public class ZookeeperRegistry extends FailbackRegistry {
                     }
                 }
             } else {
+                //NOTE: 创建ChildListener
                 List<URL> urls = new ArrayList<URL>();
                 for (String path : toCategoriesPath(url)) {
                     ConcurrentMap<NotifyListener, ChildListener> listeners = zkListeners.get(url);
@@ -182,17 +184,21 @@ public class ZookeeperRegistry extends FailbackRegistry {
                         listeners.putIfAbsent(listener, new ChildListener() {
                             @Override
                             public void childChanged(String parentPath, List<String> currentChilds) {
+                                //NOTE: zk节点变化，发起通知
                                 ZookeeperRegistry.this.notify(url, listener, toUrlsWithEmpty(url, parentPath, currentChilds));
                             }
                         });
                         zkListener = listeners.get(listener);
                     }
+                    //NOTE: 创建节点，会触发childChanged监听事件
                     zkClient.create(path, false);
                     List<String> children = zkClient.addChildListener(path, zkListener);
                     if (children != null) {
+                        //NOTE: 消费者URL和服务提供者匹配上的列表
                         urls.addAll(toUrlsWithEmpty(url, path, children));
                     }
                 }
+                //NOTE: 发起通知
                 notify(url, listener, urls);
             }
         } catch (Throwable e) {

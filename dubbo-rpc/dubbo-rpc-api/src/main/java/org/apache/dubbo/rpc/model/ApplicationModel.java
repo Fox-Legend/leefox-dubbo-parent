@@ -27,6 +27,7 @@ import java.util.concurrent.ConcurrentMap;
  * Represent a application which is using Dubbo and store basic metadata info for using
  * during the processing of RPC invoking.
  *
+ * NOTE: ApplicationModel包含很多 ProviderModel和很多ConsumerModel
  * ApplicationModel includes many ProviderModel which is about published services
  * and many Consumer Model which is about subscribed services.
  *
