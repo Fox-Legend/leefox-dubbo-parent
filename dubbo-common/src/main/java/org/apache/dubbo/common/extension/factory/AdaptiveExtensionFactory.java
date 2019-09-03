@@ -34,6 +34,10 @@ public class AdaptiveExtensionFactory implements ExtensionFactory {
 
     private final List<ExtensionFactory> factories;
 
+    /**
+     * NOTE 调用处：
+     * @see org.apache.dubbo.common.extension.ExtensionLoader#createAdaptiveExtension()
+     */
     public AdaptiveExtensionFactory() {
         ExtensionLoader<ExtensionFactory> loader = ExtensionLoader.getExtensionLoader(ExtensionFactory.class);
         List<ExtensionFactory> list = new ArrayList<ExtensionFactory>();

@@ -76,13 +76,13 @@ public class ServiceConfigTest {
         provider.setExport(true);
         provider.setProtocol(protocolConfig);
 
-        RegistryConfig registry = new RegistryConfig();
-        registry.setProtocol("mockprotocol2");
-        registry.setAddress("N/A");
-
 //        RegistryConfig registry = new RegistryConfig();
-//        registry.setProtocol("dubbo");
-//        registry.setAddress("zookeeper://127.0.0.1:2181");
+//        registry.setProtocol("mockprotocol2");
+//        registry.setAddress("N/A");
+
+        RegistryConfig registry = new RegistryConfig();
+        registry.setProtocol("dubbo");
+        registry.setAddress("zookeeper://127.0.0.1:2181");
 
         ArgumentConfig argument = new ArgumentConfig();
         argument.setIndex(0);

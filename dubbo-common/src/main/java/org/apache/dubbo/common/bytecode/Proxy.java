@@ -83,14 +83,17 @@ public abstract class Proxy {
         }
 
         StringBuilder sb = new StringBuilder();
+        //NOTE: 遍历接口列表
         for (int i = 0; i < ics.length; i++) {
             String itf = ics[i].getName();
+            //NOTE： 检测类型是否为接口
             if (!ics[i].isInterface()) {
                 throw new RuntimeException(itf + " is not a interface.");
             }
 
             Class<?> tmp = null;
             try {
+                // 重新加载接口类
                 tmp = Class.forName(itf, false, cl);
             } catch (ClassNotFoundException e) {
             }
@@ -99,10 +102,12 @@ public abstract class Proxy {
                 throw new IllegalArgumentException(ics[i] + " is not visible from class loader");
             }
 
+            // 检测接口是否相同，这里 tmp 有可能为空
             sb.append(itf).append(';');
         }
 
         // use interface class name list as key.
+        //NOTE: 使用拼接后接口名作为 key
         String key = sb.toString();
 
         // get cache by class loader.
@@ -118,6 +123,7 @@ public abstract class Proxy {
         Proxy proxy = null;
         synchronized (cache) {
             do {
+                // 从缓存中获取 Reference<Proxy> 实例
                 Object value = cache.get(key);
                 if (value instanceof Reference<?>) {
                     proxy = (Proxy) ((Reference<?>) value).get();
@@ -126,12 +132,14 @@ public abstract class Proxy {
                     }
                 }
 
+                // 多线程控制，保证只有一个线程可以进行后续操作
                 if (value == PendingGenerationMarker) {
                     try {
                         cache.wait();
                     } catch (InterruptedException e) {
                     }
                 } else {
+                    // 放置标志位到缓存中，并跳出 while 循环进行后续操作
                     cache.put(key, PendingGenerationMarker);
                     break;
                 }
@@ -141,10 +149,11 @@ public abstract class Proxy {
 
         long id = PROXY_CLASS_COUNTER.getAndIncrement();
         String pkg = null;
-        // TODO: 2019/3/13 ccp 用于为服务接口生成代理类
-        // TODO: 2019/3/13 ccm 则是用于为 org.apache.dubbo.common.bytecode.Proxy 抽象类生成子类，主要是实现 Proxy 类的抽象方法
+        // TODO: ccp 用于为服务接口生成代理类
+        // TODO: ccm 则是用于为 org.apache.dubbo.common.bytecode.Proxy 抽象类生成子类，主要是实现 Proxy 类的抽象方法
         ClassGenerator ccp = null, ccm = null;
         try {
+            //NOTE 创建 ClassGenerator 对象
             ccp = ClassGenerator.newInstance(cl);
 
             Set<String> worked = new HashSet<String>();
@@ -163,6 +172,7 @@ public abstract class Proxy {
                 }
                 ccp.addInterface(ics[i]);
 
+                // 遍历接口方法
                 for (Method method : ics[i].getMethods()) {
                     String desc = ReflectUtils.getDesc(method);
                     if (worked.contains(desc)) {
@@ -193,16 +203,23 @@ public abstract class Proxy {
             }
 
             // create ProxyInstance class.
+            //NOTE: 构建接口代理类名称：pkg + ".proxy" + id，比如 com.leefox.proxy0
             String pcn = pkg + ".proxy" + id;
             ccp.setClassName(pcn);
             ccp.addField("public static java.lang.reflect.Method[] methods;");
+            //NOTE：生成 private java.lang.reflect.InvocationHandler handler
             ccp.addField("private " + InvocationHandler.class.getName() + " handler;");
+
+            //为接口代理类添加带有 InvocationHandler 参数的构造方法
             ccp.addConstructor(Modifier.PUBLIC, new Class<?>[]{InvocationHandler.class}, new Class<?>[0], "handler=$1;");
             ccp.addDefaultConstructor();
+
+            //NOTE: 生成接口代理类
             Class<?> clazz = ccp.toClass();
             clazz.getField("methods").set(null, methods.toArray(new Method[0]));
 
             // create Proxy class.
+            //NOTE: 构建 Proxy 子类名称，比如 Proxy1，Proxy2 等
             String fcn = Proxy.class.getName() + id;
             ccm = ClassGenerator.newInstance(cl);
             ccm.setClassName(fcn);
@@ -210,6 +227,7 @@ public abstract class Proxy {
             ccm.setSuperClass(Proxy.class);
             ccm.addMethod("public Object newInstance(" + InvocationHandler.class.getName() + " h){ return new " + pcn + "($1); }");
             Class<?> pc = ccm.toClass();
+            // 通过反射创建 Proxy 实例
             proxy = (Proxy) pc.newInstance();
         } catch (RuntimeException e) {
             throw e;

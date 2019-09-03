@@ -32,6 +32,7 @@ import java.util.List;
  * Usually used for non-idempotent write operations
  *
  * <a href="http://en.wikipedia.org/wiki/Fail-fast">Fail-fast</a>
+ * 快速失败机制，负载均衡选择的任意一个invoker，调用失败则抛异常
  *
  */
 public class FailfastClusterInvoker<T> extends AbstractClusterInvoker<T> {
@@ -43,6 +44,7 @@ public class FailfastClusterInvoker<T> extends AbstractClusterInvoker<T> {
     @Override
     public Result doInvoke(Invocation invocation, List<Invoker<T>> invokers, LoadBalance loadbalance) throws RpcException {
         checkInvokers(invokers, invocation);
+        //负载均衡选择Invoker
         Invoker<T> invoker = select(loadbalance, invocation, invokers, null);
         try {
             return invoker.invoke(invocation);

@@ -73,12 +73,12 @@ public class ExtensionLoader<T> {
 
     private static final Pattern NAME_SEPARATOR = Pattern.compile("\\s*[,]+\\s*");
     /**
-     * 拓展加载器集合(key 为拓展接口)
+     * NOTE：扩展点加载器集合(key 为扩展点（接口），value为对应的扩展加载器)：一个类型对应一个扩展加载器
      */
     private static final ConcurrentMap<Class<?>, ExtensionLoader<?>> EXTENSION_LOADERS = new ConcurrentHashMap<Class<?>, ExtensionLoader<?>>();
 
     /**
-     * 拓展实现类集合（key 为拓展实现类，value拓展对象）
+     * NOTE：扩展点的实现类集合（key 为扩展点现类，value扩展点实例化对象）
      */
     private static final ConcurrentMap<Class<?>, Object> EXTENSION_INSTANCES = new ConcurrentHashMap<Class<?>, Object>();
 
@@ -90,7 +90,7 @@ public class ExtensionLoader<T> {
     private final Class<?> type;
 
     /**
-     * 对象工厂
+     * 对象工厂（实际为AdaptiveExtensionFactory->SpiExtensionFactory）
      * 用户调用{@link #injectExtension(Object)} 方法，向拓展对象注入依赖属性
      */
     private final ExtensionFactory objectFactory;
@@ -106,7 +106,7 @@ public class ExtensionLoader<T> {
     private final ConcurrentMap<Class<?>, String> cachedNames = new ConcurrentHashMap<Class<?>, String>();
 
     /**
-     * 缓存的拓展实现类集合
+     * NOTE: 缓存的拓展实现类集合(key 为配置文件指定的扩展名name, value为扩展类)
      * 通过 {@link #loadExtensionClasses()} 加载
      *
      * 不包含：
@@ -664,6 +664,7 @@ public class ExtensionLoader<T> {
      */
     private T injectExtension(T instance) {
         try {
+            //NOTE: 仅仅对于ExtensionFactory，objectFactory为null
             if (objectFactory != null) {
                 // NOTE: 遍历所有的方法、找到参数只有一个且public的setter方法，
                 for (Method method : instance.getClass().getMethods()) {
@@ -951,7 +952,7 @@ public class ExtensionLoader<T> {
     /**
      * 1、调用 getExtensionClasses 获取所有的拓展类
      * 2、检查缓存，若缓存不为空，则返回缓存
-     * 3、若缓存为空，则调用 createAdaptiveExtensionClass 创建自适应拓展类
+     * 3、若缓存为空，则调用{@link #createAdaptiveExtensionClass()} 创建自适应拓展类
      * @return
      */
     private Class<?> getAdaptiveExtensionClass() {
@@ -987,11 +988,13 @@ public class ExtensionLoader<T> {
         Method[] methods = type.getMethods();
         boolean hasAdaptiveAnnotation = false;
         for (Method m : methods) {
+            //NOTE: 接口的方法上是否有加@Adaptive注解
             if (m.isAnnotationPresent(Adaptive.class)) {
                 hasAdaptiveAnnotation = true;
                 break;
             }
         }
+        //NOTE: 若需要生成自适应扩展类，接口内部的方法至少有一个必须有@Adaptive注解
         // no need to generate adaptive class since there's no adaptive method found.
         if (!hasAdaptiveAnnotation) {
             throw new IllegalStateException("No adaptive method on extension " + type.getName() + ", refuse to create the adaptive class!");
@@ -1001,7 +1004,7 @@ public class ExtensionLoader<T> {
         codeBuilder.append("\nimport ").append(ExtensionLoader.class.getName()).append(";");
         codeBuilder.append("\npublic class ").append(type.getSimpleName()).append("$Adaptive").append(" implements ").append(type.getCanonicalName()).append(" {");
 
-        // TODO: 2019/3/10 生成方法
+        // NOTE: 生成方法
         for (Method method : methods) {
             Class<?> rt = method.getReturnType();
             Class<?>[] pts = method.getParameterTypes();
@@ -1009,7 +1012,7 @@ public class ExtensionLoader<T> {
             
             Adaptive adaptiveAnnotation = method.getAnnotation(Adaptive.class);
             StringBuilder code = new StringBuilder(512);
-            // TODO: 2019/3/10 对于没有被Adaptive注解的方法，不会生成代理逻辑，而是抛出一段异常代码
+            // NOTE: 对于没有被Adaptive注解的方法，不会生成代理逻辑，而是抛出一段异常代码
             if (adaptiveAnnotation == null) {
                 code.append("throw new UnsupportedOperationException(\"method ")
                         .append(method.toString()).append(" of interface ")

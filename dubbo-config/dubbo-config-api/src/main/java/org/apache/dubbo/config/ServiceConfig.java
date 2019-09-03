@@ -334,7 +334,7 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
      * NOTE: 暴露服务入口
      */
     public synchronized void export() {
-        //NOTE: 加载配置文件
+        //NOTE: 校验配置文件
         checkAndUpdateSubConfigs();
 
         if (provider != null) {
@@ -369,6 +369,7 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
         if (path == null || path.length() == 0) {
             path = interfaceName;
         }
+        //NOTE: 创建ProviderModel，并记录到ApplicationModel中
         ProviderModel providerModel = new ProviderModel(getUniqueServiceName(), ref, interfaceClass);
         ApplicationModel.initProviderModel(getUniqueServiceName(), providerModel);
         doExportUrls();
@@ -1052,6 +1053,10 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
         this.protocols = convertProviderToProtocol(providers);
     }
 
+    /**
+     * 确定服务的独一无二的服务名称：GIV（group/interfaceName:version）
+     * @return
+     */
     @Parameter(excluded = true)
     public String getUniqueServiceName() {
         StringBuilder buf = new StringBuilder();

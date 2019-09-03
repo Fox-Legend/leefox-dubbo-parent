@@ -53,15 +53,18 @@ public class FailoverClusterInvoker<T> extends AbstractClusterInvoker<T> {
     @Override
     @SuppressWarnings({"unchecked", "rawtypes"})
     public Result doInvoke(Invocation invocation, final List<Invoker<T>> invokers, LoadBalance loadbalance) throws RpcException {
+        //NOTE：为什么要复制呢？(动态服务目录)
         List<Invoker<T>> copyInvokers = invokers;
         checkInvokers(copyInvokers, invocation);
         String methodName = RpcUtils.getMethodName(invocation);
+        //NOTE: 重试次数，默认3次；若配置小于0，则只执行1次
         int len = getUrl().getMethodParameter(methodName, Constants.RETRIES_KEY, Constants.DEFAULT_RETRIES) + 1;
         if (len <= 0) {
             len = 1;
         }
         // retry loop.
         RpcException le = null; // last exception.
+        //NOTE: 记录已经调用过的Invoker
         List<Invoker<T>> invoked = new ArrayList<Invoker<T>>(copyInvokers.size()); // invoked invokers.
         Set<String> providers = new HashSet<String>(len);
         for (int i = 0; i < len; i++) {
@@ -69,14 +72,17 @@ public class FailoverClusterInvoker<T> extends AbstractClusterInvoker<T> {
             //NOTE: if `invokers` changed, then `invoked` also lose accuracy.
             if (i > 0) {
                 checkWhetherDestroyed();
+                //NOTE: Invoker列表是否有刷新？
                 copyInvokers = list(invocation);
                 // check again
                 checkInvokers(copyInvokers, invocation);
             }
+            //NOTE: 调用负载均衡算法，获得Invoker
             Invoker<T> invoker = select(loadbalance, invocation, copyInvokers, invoked);
             invoked.add(invoker);
             RpcContext.getContext().setInvokers((List) invoked);
             try {
+                //NOTE: 调用Invoker
                 Result result = invoker.invoke(invocation);
                 if (le != null && logger.isWarnEnabled()) {
                     logger.warn("Although retry the method " + methodName
@@ -98,6 +104,7 @@ public class FailoverClusterInvoker<T> extends AbstractClusterInvoker<T> {
             } catch (Throwable e) {
                 le = new RpcException(e.getMessage(), e);
             } finally {
+                //NOTE: 记录服务提供者的信息
                 providers.add(invoker.getUrl().getAddress());
             }
         }

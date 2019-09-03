@@ -35,9 +35,13 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class RoundRobinLoadBalance extends AbstractLoadBalance {
     public static final String NAME = "roundrobin";
-    
+
     private static int RECYCLE_PERIOD = 60000;
-    
+
+    /**
+     * 记录每个Invoker的当前轮询权重信息
+     * 只要为current和weight
+     */
     protected static class WeightedRoundRobin {
         private int weight;
         private AtomicLong current = new AtomicLong(0);
@@ -101,25 +105,34 @@ public class RoundRobinLoadBalance extends AbstractLoadBalance {
             String identifyString = invoker.getUrl().toIdentityString();
             WeightedRoundRobin weightedRoundRobin = map.get(identifyString);
             int weight = getWeight(invoker, invocation);
-
+            //NOTE: 若没有WeightedRoundRobin，则创建
             if (weightedRoundRobin == null) {
                 weightedRoundRobin = new WeightedRoundRobin();
                 weightedRoundRobin.setWeight(weight);
                 map.putIfAbsent(identifyString, weightedRoundRobin);
             }
+            //NOTE: 若Invoker的权重变了，更新WeightedRoundRobin
             if (weight != weightedRoundRobin.getWeight()) {
                 //weight changed
                 weightedRoundRobin.setWeight(weight);
             }
+            //NOTE: 让 current 字段加上自身权重，等价于 current += weight
             long cur = weightedRoundRobin.increaseCurrent();
+            //NOTE: 设置 lastUpdate 字段，即 lastUpdate = now
             weightedRoundRobin.setLastUpdate(now);
+            //NOTE: 寻找具有最大 current 的 Invoker 以及 WeightedRoundRobin，后续使用
             if (cur > maxCurrent) {
                 maxCurrent = cur;
                 selectedInvoker = invoker;
                 selectedWRR = weightedRoundRobin;
             }
+            //NOTE: 计算总权重
             totalWeight += weight;
         }
+
+
+        //NOTE: 对 <identifyString, WeightedRoundRobin> 进行检查，过滤掉长时间未被更新的节点。
+        //NOTE: 该节点可能挂了，invokers 中不包含该节点，所以该节点的 lastUpdate 长时间无法被更新。
         if (!updateLock.get() && invokers.size() != map.size()) {
             if (updateLock.compareAndSet(false, true)) {
                 try {
@@ -129,18 +142,23 @@ public class RoundRobinLoadBalance extends AbstractLoadBalance {
                     Iterator<Entry<String, WeightedRoundRobin>> it = newMap.entrySet().iterator();
                     while (it.hasNext()) {
                         Entry<String, WeightedRoundRobin> item = it.next();
+                        //NOTE: 若未更新时长超过阈值后，就会被移除掉，默认阈值为60秒。
                         if (now - item.getValue().getLastUpdate() > RECYCLE_PERIOD) {
                             it.remove();
                         }
                     }
+                    // 更新引用
                     methodWeightMap.put(key, newMap);
                 } finally {
                     updateLock.set(false);
                 }
             }
         }
+
+        //NOTE: 让 current 减去权重总和，等价于 current -= totalWeight
         if (selectedInvoker != null) {
             selectedWRR.sel(totalWeight);
+            // 返回具有最大 current 的 Invoker
             return selectedInvoker;
         }
         // should not happen here

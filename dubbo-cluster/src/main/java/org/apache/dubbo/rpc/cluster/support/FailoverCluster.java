@@ -23,7 +23,7 @@ import org.apache.dubbo.rpc.cluster.Directory;
 
 /**
  * {@link FailoverClusterInvoker}
- *
+ * dubbo 默认的失败机制，创建对应的Invoker
  */
 public class FailoverCluster implements Cluster {
 
@@ -31,6 +31,7 @@ public class FailoverCluster implements Cluster {
 
     @Override
     public <T> Invoker<T> join(Directory<T> directory) throws RpcException {
+        //NOTE: 将动态服务目录中 封装一层为FailoverClusterInvoker
         return new FailoverClusterInvoker<T>(directory);
     }
 

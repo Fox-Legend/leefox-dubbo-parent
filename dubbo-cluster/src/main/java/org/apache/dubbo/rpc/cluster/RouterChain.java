@@ -46,6 +46,7 @@ public class RouterChain<T> {
         return new RouterChain<>(url);
     }
 
+    //NOTE: 根据url 构建Router
     private RouterChain(URL url) {
         List<RouterFactory> extensionFactories = ExtensionLoader.getExtensionLoader(RouterFactory.class)
                 .getActivateExtension(url, (String[]) null);

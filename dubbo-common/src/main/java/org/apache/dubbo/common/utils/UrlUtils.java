@@ -384,6 +384,12 @@ public class UrlUtils {
         }
     }
 
+    /**
+     * 服务是否一致，GIV校验
+     * @param consumerUrl
+     * @param providerUrl
+     * @return
+     */
     public static boolean isMatch(URL consumerUrl, URL providerUrl) {
         String consumerInterface = consumerUrl.getServiceInterface();
         String providerInterface = providerUrl.getServiceInterface();

@@ -66,7 +66,7 @@ public class ForkingClusterInvoker<T> extends AbstractClusterInvoker<T> {
             } else {
                 selected = new ArrayList<>();
                 for (int i = 0; i < forks; i++) {
-                    // TODO. Add some comment here, refer chinese version for more details.
+                    //NOTE: 循环选出 forks 个 Invoker，并添加到 selected 中
                     Invoker<T> invoker = select(loadbalance, invocation, invokers, selected);
                     if (!selected.contains(invoker)) {
                         //Avoid add the same invoker several times.
@@ -77,15 +77,18 @@ public class ForkingClusterInvoker<T> extends AbstractClusterInvoker<T> {
             RpcContext.getContext().setInvokers((List) selected);
             final AtomicInteger count = new AtomicInteger();
             final BlockingQueue<Object> ref = new LinkedBlockingQueue<>();
+            //NOTE: 开启多线程并行执行调用多个invoker，只有有一个正常的结果返回则直接返回
             for (final Invoker<T> invoker : selected) {
                 executor.execute(new Runnable() {
                     @Override
                     public void run() {
                         try {
                             Result result = invoker.invoke(invocation);
+                            // 将结果存到阻塞队列中
                             ref.offer(result);
                         } catch (Throwable e) {
                             int value = count.incrementAndGet();
+                            //NOTE：一定要记录数大于selected.size()，为了避免将异常结果存放在正常结果前面
                             if (value >= selected.size()) {
                                 ref.offer(e);
                             }
@@ -94,6 +97,7 @@ public class ForkingClusterInvoker<T> extends AbstractClusterInvoker<T> {
                 });
             }
             try {
+                // 从阻塞队列中取出远程调用结果
                 Object ret = ref.poll(timeout, TimeUnit.MILLISECONDS);
                 if (ret instanceof Throwable) {
                     Throwable e = (Throwable) ret;

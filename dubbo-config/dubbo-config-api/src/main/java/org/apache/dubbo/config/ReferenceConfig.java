@@ -191,18 +191,22 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
         if (interfaceName == null || interfaceName.length() == 0) {
             throw new IllegalStateException("<dubbo:reference interface=\"\" /> interface not allow null!");
         }
+        //从 consumer 中获取不同的实例
         completeCompoundConfigs();
         startConfigCenter();
         // get consumer's global configuration
         checkDefault();
         this.refresh();
+        // 设置 generic
         if (getGeneric() == null && getConsumer() != null) {
             setGeneric(getConsumer().getGeneric());
         }
+        //NOTE: 检测是否为泛化接口
         if (ProtocolUtils.isGeneric(getGeneric())) {
             interfaceClass = GenericService.class;
         } else {
             try {
+                //NOTE: 通过接口名加载类
                 interfaceClass = Class.forName(interfaceName, true, Thread.currentThread()
                         .getContextClassLoader());
             } catch (ClassNotFoundException e) {
@@ -220,6 +224,7 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
      * @return
      */
     public synchronized T get() {
+        //NOTE: 配置校验
         checkAndUpdateSubConfigs();
 
         if (destroyed) {
@@ -261,6 +266,8 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
         initialized = true;
         checkStubAndLocal(interfaceClass);
         checkMock(interfaceClass);
+
+        //NOTE: 开始继续准备生成URL的参数信息
         Map<String, String> map = new HashMap<String, String>();
 
         map.put(Constants.SIDE_KEY, Constants.CONSUMER_SIDE);
@@ -279,12 +286,14 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
                 map.put("methods", StringUtils.join(new HashSet<String>(Arrays.asList(methods)), ","));
             }
         }
+        //NOTE: 将 ApplicationConfig、ConsumerConfig、ReferenceConfig 等对象的字段信息添加到 map 中
         map.put(Constants.INTERFACE_KEY, interfaceName);
         appendParameters(map, application);
         appendParameters(map, module);
         appendParameters(map, consumer, Constants.DEFAULT_KEY);
         appendParameters(map, this);
         Map<String, Object> attributes = null;
+        //NOTE: 遍历 MethodConfig 列表
         if (methods != null && !methods.isEmpty()) {
             attributes = new HashMap<String, Object>();
             for (MethodConfig methodConfig : methods) {
@@ -300,7 +309,8 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
             }
         }
 
-        // TODO: 2019/3/13 获取服务消费者 ip 地址
+
+        //NOTE: 获取服务消费者 ip 地址
         String hostToRegistry = ConfigUtils.getSystemProperty(Constants.DUBBO_IP_TO_REGISTRY);
         if (hostToRegistry == null || hostToRegistry.length() == 0) {
             hostToRegistry = NetUtils.getLocalHost();
@@ -309,10 +319,10 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
         }
         map.put(Constants.REGISTER_IP_KEY, hostToRegistry);
 
-        // TODO: 2019/3/13 创建代理类
+        //NOTE: 创建代理类
         ref = createProxy(map);
 
-        // TODO: 2019/3/13 根据服务名，ReferenceConfig，代理类构建 ConsumerModel,并将 ConsumerModel 存入到 ApplicationModel 中
+        //NOTE: 根据服务名，ReferenceConfig，代理类构建 ConsumerModel,并将 ConsumerModel 存入到 ApplicationModel 中
         ConsumerModel consumerModel = new ConsumerModel(getUniqueServiceName(), interfaceClass, ref, interfaceClass.getMethods(), attributes);
         ApplicationModel.initConsumerModel(getUniqueServiceName(), consumerModel);
     }
@@ -332,6 +342,9 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
             isJvmRefer = isInjvm();
         }
 
+        //NOTE: -------1、URL构建和创建服务引用Invoker----
+
+
         // NOTE: 本地引用
         if (isJvmRefer) {
             URL url = new URL(Constants.LOCAL_PROTOCOL, NetUtils.LOCALHOST, 0, interfaceClass.getName()).addParameters(map);
@@ -343,7 +356,9 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
         // NOTE: 远程引用
         } else {
             // user specified URL, could be peer-to-peer address, or register center's address.
+            //NOTE：指定URL，服务直连
             if (url != null && url.length() > 0) {
+                //NOTE: 若指定多个url，分号隔开
                 String[] us = Constants.SEMICOLON_SPLIT_PATTERN.split(url);
                 if (us != null && us.length > 0) {
                     for (String u : us) {
@@ -351,18 +366,20 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
                         if (url.getPath() == null || url.getPath().length() == 0) {
                             url = url.setPath(interfaceName);
                         }
-                        // TODO: 2019/3/13 检测 url 协议是否为 registry，若是，表明用户想使用指定的注册中心
+                        // NOTE: 检测 url 协议是否为 registry，若是，表明用户想使用指定的注册中心
                         if (Constants.REGISTRY_PROTOCOL.equals(url.getProtocol())) {
                             urls.add(url.addParameterAndEncoded(Constants.REFER_KEY, StringUtils.toQueryString(map)));
                         } else {
+                            //NOTE: 合并url, 移除服务提供者的一些配置
                             urls.add(ClusterUtils.mergeUrl(url, map));
                         }
                     }
                 }
             } else {
-                // TODO: 2019/3/13   加载注册中心 url
+                // NOTE: 加载注册中心 url
                 // assemble URL from register center's configuration
                 checkRegistry();
+                //加载注册中心的地址
                 List<URL> us = loadRegistries(false);
                 if (us != null && !us.isEmpty()) {
                     for (URL u : us) {
@@ -430,8 +447,12 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
             URL consumerURL = new URL(Constants.CONSUMER_PROTOCOL, map.remove(Constants.REGISTER_IP_KEY), 0, map.get(Constants.INTERFACE_KEY), map);
             metadataReportService.publishConsumer(consumerURL);
         }
+
+
+        //NOTE: -------2、创建服务引用代理类----
+
         // create service proxy
-        // TODO: 2019/3/13  生成代理类
+        // TODO: 生成代理类
         return (T) proxyFactory.getProxy(invoker);
     }
 
@@ -603,7 +624,11 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
         return Constants.DUBBO + ".reference." + interfaceName;
     }
 
+    /**
+     * NOTE: 解析配置文件，获取与接口对应的属性值
+     */
     private void resolveFile() {
+        //NOTE: 从系统变量中获取与接口名对应的属性值
         String resolve = System.getProperty(interfaceName);
         String resolveFile = null;
         if (resolve == null || resolve.length() == 0) {
@@ -635,6 +660,7 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
             }
         }
         if (resolve != null && resolve.length() > 0) {
+            // 将 resolve 赋值给 url(就是将接口相关的属性值赋值给url)
             url = resolve;
             if (logger.isWarnEnabled()) {
                 if (resolveFile != null) {

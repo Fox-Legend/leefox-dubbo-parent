@@ -119,6 +119,7 @@ public abstract class AbstractClusterInvoker<T> implements Invoker<T> {
         }
         String methodName = invocation == null ? StringUtils.EMPTY : invocation.getMethodName();
 
+        //NOTE: sticky 表示粘滞连接。所谓粘滞连接是指让服务消费者尽可能的调用同一个服务提供者，除非该提供者挂了再进行切换。
         boolean sticky = invokers.get(0).getUrl()
             .getMethodParameter(methodName, Constants.CLUSTER_STICKY_KEY, Constants.DEFAULT_CLUSTER_STICKY);
 
@@ -127,14 +128,17 @@ public abstract class AbstractClusterInvoker<T> implements Invoker<T> {
             stickyInvoker = null;
         }
         //ignore concurrency problem
+        //NOTE: selected 用于判断之前调用过的Invoker中，若stickyInvoker包含在其中，那么表示它已经无法提供服务
         if (sticky && stickyInvoker != null && (selected == null || !selected.contains(stickyInvoker))) {
             if (availablecheck && stickyInvoker.isAvailable()) {
                 return stickyInvoker;
             }
         }
 
+        //NOTE: doSelect 选择 Invoker
         Invoker<T> invoker = doSelect(loadbalance, invocation, invokers, selected);
 
+        //如果 sticky 为 true，则将负载均衡组件选出的 Invoker 赋值给 stickyInvoker
         if (sticky) {
             stickyInvoker = invoker;
         }
@@ -150,12 +154,15 @@ public abstract class AbstractClusterInvoker<T> implements Invoker<T> {
         if (invokers.size() == 1) {
             return invokers.get(0);
         }
+        //NOTE：通过负载均衡组件选择 Invoker
         Invoker<T> invoker = loadbalance.select(invokers, getUrl(), invocation);
 
         //If the `invoker` is in the  `selected` or invoker is unavailable && availablecheck is true, reselect.
+        //NOTE：若invoker在selected中，表示已经失败了，或者invoker不可用，那么需要重新通过Loadbalance重新选择一个Invoker
         if ((selected != null && selected.contains(invoker))
                 || (!invoker.isAvailable() && getUrl() != null && availablecheck)) {
             try {
+
                 Invoker<T> rinvoker = reselect(loadbalance, invocation, invokers, selected, availablecheck);
                 if (rinvoker != null) {
                     invoker = rinvoker;
